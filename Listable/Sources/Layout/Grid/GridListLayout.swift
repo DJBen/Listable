@@ -100,8 +100,6 @@ public struct GridAppearance : ListLayoutAppearance
         /// The spacing to apply below a section header, before its items.
         /// Not applied if there is no section header.
         public var sectionHeaderBottomSpacing : CGFloat
-        /// The spacing between individual items within a section in a list.
-        public var itemSpacing : CGFloat
         /// The spacing between the last item in the section and the footer.
         /// Not applied if there is no section footer.
         public var itemToSectionFooterSpacing : CGFloat
@@ -119,7 +117,6 @@ public struct GridAppearance : ListLayoutAppearance
             interSectionSpacingWithNoFooter : CGFloat = 0.0,
             interSectionSpacingWithFooter : CGFloat = 0.0,
             sectionHeaderBottomSpacing : CGFloat = 0.0,
-            itemSpacing : CGFloat = 0.0,
             itemToSectionFooterSpacing : CGFloat = 0.0,
             lastSectionToFooterSpacing : CGFloat = 0.0
         ) {
@@ -134,7 +131,6 @@ public struct GridAppearance : ListLayoutAppearance
             self.interSectionSpacingWithFooter = interSectionSpacingWithFooter
             
             self.sectionHeaderBottomSpacing = sectionHeaderBottomSpacing
-            self.itemSpacing = itemSpacing
             self.itemToSectionFooterSpacing = itemToSectionFooterSpacing
             
             self.lastSectionToFooterSpacing = lastSectionToFooterSpacing
@@ -223,6 +219,128 @@ final class GridListLayout : ListLayout
         delegate : CollectionViewLayoutDelegate,
         in collectionView : UICollectionView
     ) {
-        fatalError()
+        let gridSizing = layoutAppearance.sizing
+        let gridLayout = layoutAppearance.layout
+        
+        let viewWidth = collectionView.bounds.width
+        let contentWidth = viewWidth - gridLayout.padding.left - gridLayout.padding.right
+        let xOrigin = gridLayout.padding.left
+        
+        var lastMaxY : CGFloat = gridLayout.padding.top
+        
+        performLayout(for: content.header) { header in
+            guard header.isPopulated else {
+                return
+            }
+            
+            header.x = xOrigin
+            header.y = lastMaxY
+            
+            let measureInfo = Sizing.MeasureInfo(
+                sizeConstraint: CGSize(width: contentWidth, height: .greatestFiniteMagnitude),
+                defaultSize: CGSize(width: contentWidth, height: gridSizing.listHeaderHeight),
+                direction: .vertical
+            )
+            
+            header.size = header.measurer(measureInfo)
+            
+            lastMaxY = header.defaultFrame.maxY
+            
+            if content.sections.isEmpty == false {
+                lastMaxY += gridLayout.headerToFirstSectionSpacing
+            }
+        }
+        
+        content.sections.forEachWithIndex { index, isLast, section in
+            
+            performLayout(for: section.header) { header in
+                guard header.isPopulated else {
+                    return
+                }
+                
+                header.x = xOrigin
+                header.y = lastMaxY
+                
+                let measureInfo = Sizing.MeasureInfo(
+                    sizeConstraint: CGSize(width: contentWidth, height: .greatestFiniteMagnitude),
+                    defaultSize: CGSize(width: contentWidth, height: gridSizing.sectionHeaderHeight),
+                    direction: .vertical
+                )
+                
+                header.size = header.measurer(measureInfo)
+                
+                lastMaxY = header.defaultFrame.maxY
+                
+                if section.items.isEmpty == false {
+                    lastMaxY += layoutAppearance.layout.sectionHeaderBottomSpacing
+                }
+            }
+            
+            section.items.forEachWithIndex { index, isLast, item in
+                
+                fatalError()
+                
+                if isLast {
+                    lastMaxY += layoutAppearance.layout.itemToSectionFooterSpacing
+                }
+            }
+
+            performLayout(for: section.footer) { footer in
+                guard footer.isPopulated else {
+                    return
+                }
+                
+                footer.x = xOrigin
+                footer.y = lastMaxY
+                
+                let measureInfo = Sizing.MeasureInfo(
+                    sizeConstraint: CGSize(width: contentWidth, height: .greatestFiniteMagnitude),
+                    defaultSize: CGSize(width: contentWidth, height: gridSizing.sectionFooterHeight),
+                    direction: .vertical
+                )
+                
+                footer.size = footer.measurer(measureInfo)
+                
+                lastMaxY = footer.defaultFrame.maxY
+            }
+            
+            if isLast {
+                lastMaxY += gridLayout.lastSectionToFooterSpacing
+            } else {
+                if section.footer.isPopulated {
+                    lastMaxY += gridLayout.interSectionSpacingWithFooter
+                } else {
+                    lastMaxY += gridLayout.interSectionSpacingWithNoFooter
+                }
+            }
+        }
+        
+        performLayout(for: content.footer) { footer in
+            guard footer.isPopulated else {
+                return
+            }
+            
+            footer.x = xOrigin
+            footer.y = lastMaxY
+            
+            let measureInfo = Sizing.MeasureInfo(
+                sizeConstraint: CGSize(width: contentWidth, height: .greatestFiniteMagnitude),
+                defaultSize: CGSize(width: contentWidth, height: gridSizing.listFooterHeight),
+                direction: .vertical
+            )
+            
+            footer.size = footer.measurer(measureInfo)
+            
+            lastMaxY = footer.defaultFrame.maxY
+        }
+        
+        lastMaxY += gridLayout.padding.bottom
+        
+        self.content.contentSize = CGSize(width: contentWidth, height: lastMaxY)
     }
+}
+
+fileprivate func performLayout<Input>(for input : Input, _ block : (Input) -> ())
+{
+    block(input)
 }
