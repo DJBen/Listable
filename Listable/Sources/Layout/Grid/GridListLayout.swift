@@ -79,23 +79,47 @@ public struct GridAppearance : ListLayoutAppearance
         case flexible(Flexible)
         
         public struct FixedSize : Equatable {
+        
             public var size : CGSize
             
             public var horizontalSpacing : Constraint
             public var verticalSpacing : CGFloat
             
+            public init(
+                size: CGSize,
+                horizontalSpacing: Constraint,
+                verticalSpacing: CGFloat
+            ) {
+                self.size = size
+                self.horizontalSpacing = horizontalSpacing
+                self.verticalSpacing = verticalSpacing
+            }
+            
             func layoutInfo(for contentWidth : CGFloat) -> LayoutInfo
             {
-                
+                fatalError()
             }
         }
         
         public struct FixedCount : Equatable {
+            
             public var count : Int
             public var height : CGFloat
             
             public var horizontalSpacing : CGFloat
             public var verticalSpacing : CGFloat
+            
+            public init(
+                count: Int,
+                height: CGFloat,
+                horizontalSpacing: CGFloat,
+                verticalSpacing: CGFloat
+            ) {
+                self.count = count
+                self.height = height
+                self.horizontalSpacing = horizontalSpacing
+                self.verticalSpacing = verticalSpacing
+            }
             
             func layoutInfo(for contentWidth : CGFloat) -> LayoutInfo
             {
@@ -105,12 +129,14 @@ public struct GridAppearance : ListLayoutAppearance
                 return LayoutInfo(
                     itemSize: CGSize(width: itemWidth, height: height),
                     horizontalSpacing: horizontalSpacing,
-                    verticalSpacing: verticalSpacing
+                    verticalSpacing: verticalSpacing,
+                    columnCount: count
                 )
             }
         }
         
         public struct Flexible : Equatable {
+            
             public var min : CGFloat
             public var max : CGFloat
             public var height : CGFloat
@@ -118,9 +144,23 @@ public struct GridAppearance : ListLayoutAppearance
             public var horizontalSpacing : Constraint
             public var verticalSpacing : CGFloat
             
+            internal init(
+                min: CGFloat,
+                max: CGFloat,
+                height: CGFloat,
+                horizontalSpacing: Constraint,
+                verticalSpacing: CGFloat
+            ) {
+                self.min = min
+                self.max = max
+                self.height = height
+                self.horizontalSpacing = horizontalSpacing
+                self.verticalSpacing = verticalSpacing
+            }
+            
             func layoutInfo(for contentWidth : CGFloat) -> LayoutInfo
             {
-                
+                fatalError()
             }
         }
         
@@ -145,6 +185,20 @@ public struct GridAppearance : ListLayoutAppearance
             var itemSize : CGSize
             var horizontalSpacing : CGFloat
             var verticalSpacing : CGFloat
+            var columnCount : Int
+            
+            func group(items : [ListLayoutContent.ItemInfo]) -> [[ListLayoutContent.ItemInfo]]
+            {
+                var items = items
+                
+                var grouped = [[ListLayoutContent.ItemInfo]]()
+                
+                while items.count > 0 {
+                    grouped.append(items.safeDropFirst(self.columnCount))
+                }
+                
+                return grouped
+            }
         }
     }
     
@@ -181,7 +235,7 @@ public struct GridAppearance : ListLayoutAppearance
                 
         /// Creates a new `Layout` with the provided options.
         public init(
-            itemSize : ItemSize = .fixed(count: 4, height: 100.0),
+            itemSize : ItemSize = .fixedSize(.init(size: CGSize(width: 100.0, height: 100.0), horizontalSpacing: .fixed(50.0), verticalSpacing: 50.0)),
             padding : UIEdgeInsets = .zero,
             width : WidthConstraint = .noConstraint,
             headerToFirstSectionSpacing : CGFloat = 0.0,
@@ -293,8 +347,10 @@ final class GridListLayout : ListLayout
         let gridSizing = layoutAppearance.sizing
         let gridLayout = layoutAppearance.layout
         
+        // TODO: Need to figure out how the width constraint and centering + paddding works.
+        
         let viewWidth = collectionView.bounds.width
-        let contentWidth = viewWidth - gridLayout.padding.left - gridLayout.padding.right
+        let contentWidth = gridLayout.width.clamp(viewWidth - gridLayout.padding.left - gridLayout.padding.right)
         let xOrigin = gridLayout.padding.left
         
         var lastMaxY : CGFloat = gridLayout.padding.top
@@ -322,6 +378,8 @@ final class GridListLayout : ListLayout
             }
         }
         
+        let layoutInfo = gridLayout.itemSize.layoutInfo(for: contentWidth)
+        
         content.sections.forEachWithIndex { index, isLast, section in
             
             performLayout(for: section.header) { header in
@@ -347,12 +405,28 @@ final class GridListLayout : ListLayout
                 }
             }
             
-            section.items.forEachWithIndex { index, isLast, item in
+            let rows = layoutInfo.group(items: section.items)
+            
+            rows.forEachWithIndex { rowIndex, isLastRow, row in
                 
-                fatalError()
+                var xPosition = xOrigin
                 
-                if isLast {
+                row.forEachWithIndex { columnIndex, isLastColumn, item in
+                    
+                    item.x = xPosition
+                    item.y = lastMaxY
+                    item.size = layoutInfo.itemSize
+                    
+                    xPosition += layoutInfo.itemSize.width
+                    xPosition += layoutInfo.horizontalSpacing
+                }
+                
+                lastMaxY += layoutInfo.itemSize.height
+                
+                if isLastRow {
                     lastMaxY += layoutAppearance.layout.itemToSectionFooterSpacing
+                } else {
+                    lastMaxY += layoutInfo.verticalSpacing
                 }
             }
 
@@ -411,7 +485,24 @@ final class GridListLayout : ListLayout
     }
 }
 
+
+fileprivate extension Array
+{
+    mutating func safeDropFirst(_ count : Int) -> [Element]
+    {
+        let safeCount = Swift.min(self.count, count)
+        let values = self[0..<safeCount]
+        
+        self.removeFirst(safeCount)
+        
+        return Array(values)
+    }
+}
+
+
 fileprivate func performLayout<Input>(for input : Input, _ block : (Input) -> ())
 {
     block(input)
 }
+
+
