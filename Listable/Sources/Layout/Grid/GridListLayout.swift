@@ -72,11 +72,82 @@ public struct GridAppearance : ListLayoutAppearance
         }
     }
     
+    
     public enum ItemSize : Equatable {
-        case fixed(size:CGSize)
-        case fixed(count:Int, height:CGFloat)
-        case flexible(min:CGFloat, max:CGFloat, height:CGFloat)
+        case fixedSize(FixedSize)
+        case fixedCount(FixedCount)
+        case flexible(Flexible)
+        
+        public struct FixedSize : Equatable {
+            public var size : CGSize
+            
+            public var horizontalSpacing : Constraint
+            public var verticalSpacing : CGFloat
+            
+            func layoutInfo(for contentWidth : CGFloat) -> LayoutInfo
+            {
+                
+            }
+        }
+        
+        public struct FixedCount : Equatable {
+            public var count : Int
+            public var height : CGFloat
+            
+            public var horizontalSpacing : CGFloat
+            public var verticalSpacing : CGFloat
+            
+            func layoutInfo(for contentWidth : CGFloat) -> LayoutInfo
+            {
+                let totalSpacing = (horizontalSpacing * CGFloat(count - 1))
+                let itemWidth = round((contentWidth - totalSpacing) / CGFloat(count))
+                
+                return LayoutInfo(
+                    itemSize: CGSize(width: itemWidth, height: height),
+                    horizontalSpacing: horizontalSpacing,
+                    verticalSpacing: verticalSpacing
+                )
+            }
+        }
+        
+        public struct Flexible : Equatable {
+            public var min : CGFloat
+            public var max : CGFloat
+            public var height : CGFloat
+            
+            public var horizontalSpacing : Constraint
+            public var verticalSpacing : CGFloat
+            
+            func layoutInfo(for contentWidth : CGFloat) -> LayoutInfo
+            {
+                
+            }
+        }
+        
+        public enum Constraint : Equatable {
+            case fixed(CGFloat)
+            case atLeast(CGFloat)
+            case atMost(CGFloat)
+            case within(ClosedRange<CGFloat>)
+        }
+        
+        func layoutInfo(for contentWidth : CGFloat) -> LayoutInfo
+        {
+            switch self {
+            case .fixedSize(let info): return info.layoutInfo(for: contentWidth)
+            case .fixedCount(let info): return info.layoutInfo(for: contentWidth)
+            case .flexible(let info): return info.layoutInfo(for: contentWidth)
+            }
+        }
+        
+        struct LayoutInfo
+        {
+            var itemSize : CGSize
+            var horizontalSpacing : CGFloat
+            var verticalSpacing : CGFloat
+        }
     }
+    
 
     public struct Layout : Equatable
     {
