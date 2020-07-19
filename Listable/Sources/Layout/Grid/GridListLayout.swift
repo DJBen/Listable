@@ -82,18 +82,14 @@ public struct GridAppearance : ListLayoutAppearance
             public var size : CGSize
             
             public var minHorizontalSpacing : CGFloat
-            public var verticalSpacing : CGFloat
             
             public init(
                 size: CGSize,
-                minHorizontalSpacing : CGFloat,
-                verticalSpacing: CGFloat
+                minHorizontalSpacing : CGFloat
             ) {
                 self.size = size
                 
                 self.minHorizontalSpacing = minHorizontalSpacing
-                
-                self.verticalSpacing = verticalSpacing
             }
             
             func layoutInfo(for contentWidth : CGFloat) -> LayoutInfo
@@ -119,7 +115,6 @@ public struct GridAppearance : ListLayoutAppearance
                     return LayoutInfo(
                         itemSize: CGSize(width: itemWidth, height: size.height),
                         horizontalSpacing: 0.0,
-                        verticalSpacing: verticalSpacing,
                         columnCount: 1
                     )
                 } else if leftoverForSpacing < minTotalSpacing {
@@ -130,7 +125,6 @@ public struct GridAppearance : ListLayoutAppearance
                     return LayoutInfo(
                         itemSize: CGSize(width: itemWidth, height: size.height),
                         horizontalSpacing: horizontalSpacing,
-                        verticalSpacing: verticalSpacing,
                         columnCount: columnCount
                     )
                 }
@@ -143,18 +137,15 @@ public struct GridAppearance : ListLayoutAppearance
             public var height : CGFloat
             
             public var horizontalSpacing : CGFloat
-            public var verticalSpacing : CGFloat
             
             public init(
                 count: Int,
                 height: CGFloat,
-                horizontalSpacing: CGFloat,
-                verticalSpacing: CGFloat
+                horizontalSpacing: CGFloat
             ) {
                 self.count = count
                 self.height = height
                 self.horizontalSpacing = horizontalSpacing
-                self.verticalSpacing = verticalSpacing
             }
             
             func layoutInfo(for contentWidth : CGFloat) -> LayoutInfo
@@ -165,7 +156,6 @@ public struct GridAppearance : ListLayoutAppearance
                 return LayoutInfo(
                     itemSize: CGSize(width: itemWidth, height: height),
                     horizontalSpacing: horizontalSpacing,
-                    verticalSpacing: verticalSpacing,
                     columnCount: count
                 )
             }
@@ -183,7 +173,6 @@ public struct GridAppearance : ListLayoutAppearance
         {
             var itemSize : CGSize
             var horizontalSpacing : CGFloat
-            var verticalSpacing : CGFloat
             var columnCount : Int
             
             func group(items : [ListLayoutContent.ItemInfo]) -> [[ListLayoutContent.ItemInfo]]
@@ -223,6 +212,8 @@ public struct GridAppearance : ListLayoutAppearance
         /// The spacing to apply below a section header, before its items.
         /// Not applied if there is no section header.
         public var sectionHeaderBottomSpacing : CGFloat
+        /// The spacing between rows in the grid.
+        public var rowSpacing : CGFloat
         /// The spacing between the last item in the section and the footer.
         /// Not applied if there is no section footer.
         public var itemToSectionFooterSpacing : CGFloat
@@ -233,13 +224,14 @@ public struct GridAppearance : ListLayoutAppearance
                 
         /// Creates a new `Layout` with the provided options.
         public init(
-            itemSize : ItemSize = .fixedSize(.init(size: CGSize(width: 110.0, height: 90.0), minHorizontalSpacing: 10.0, verticalSpacing: 10.0)),
+            itemSize : ItemSize = .fixedSize(.init(size: CGSize(width: 110.0, height: 90.0), minHorizontalSpacing: 10.0)),
             padding : UIEdgeInsets = .zero,
             width : WidthConstraint = .noConstraint,
             headerToFirstSectionSpacing : CGFloat = 10.0,
             interSectionSpacingWithNoFooter : CGFloat = 20.0,
             interSectionSpacingWithFooter : CGFloat = 20.0,
             sectionHeaderBottomSpacing : CGFloat = 10.0,
+            rowSpacing : CGFloat = 10.0,
             itemToSectionFooterSpacing : CGFloat = 10.0,
             lastSectionToFooterSpacing : CGFloat = 10.0
         ) {
@@ -254,6 +246,7 @@ public struct GridAppearance : ListLayoutAppearance
             self.interSectionSpacingWithFooter = interSectionSpacingWithFooter
             
             self.sectionHeaderBottomSpacing = sectionHeaderBottomSpacing
+            self.rowSpacing = rowSpacing
             self.itemToSectionFooterSpacing = itemToSectionFooterSpacing
             
             self.lastSectionToFooterSpacing = lastSectionToFooterSpacing
@@ -426,7 +419,7 @@ final class GridListLayout : ListLayout
                 if isLastRow {
                     lastMaxY += layoutAppearance.layout.itemToSectionFooterSpacing
                 } else {
-                    lastMaxY += layoutInfo.verticalSpacing
+                    lastMaxY += gridLayout.rowSpacing
                 }
             }
 
