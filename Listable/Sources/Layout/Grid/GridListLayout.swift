@@ -76,6 +76,7 @@ public struct GridAppearance : ListLayoutAppearance
     public enum ItemSize : Equatable {
         case fixedSize(FixedSize)
         case fixedCount(FixedCount)
+        case flexibleWidth(FlexibleWidth)
         
         public struct FixedSize : Equatable {
         
@@ -171,11 +172,27 @@ public struct GridAppearance : ListLayoutAppearance
             }
         }
         
+        public struct FlexibleWidth : Equatable
+        {
+            public var minWidth : CGFloat
+            public var maxWidth : CGFloat
+            
+            public var height : CGFloat
+            
+            public var horizontalSpacing : CGFloat
+            public var verticalSpacing : CGFloat
+            
+            func layoutInfo(for contentWidth : CGFloat) -> LayoutInfo
+            {
+            }
+        }
+        
         func layoutInfo(for contentWidth : CGFloat) -> LayoutInfo
         {
             switch self {
             case .fixedSize(let info): return info.layoutInfo(for: contentWidth)
             case .fixedCount(let info): return info.layoutInfo(for: contentWidth)
+            case .flexibleWidth(let info): return info.layoutInfo(for: contentWidth)
             }
         }
         
